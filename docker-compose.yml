@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      test-db:
+        condition: service_healthy
     environment:
       DJANGO_SETTINGS_MODULE: todobackend.settings.test
       MYSQL_HOST: test-db
@@ -14,6 +17,10 @@ services:
       TEST_OUTPUT_DIR: /reports
   test-db:
     image: mariadb:10.5
+    healthcheck:
+      test: mysqlshow -u root -ppassword
+      interval: 3s
+      retries: 10
     environment:
       MYSQL_DATABASE: todobackend
       MYSQL_ROOT_PASSWORD: password
