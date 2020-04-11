@@ -16,16 +16,16 @@ SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
 # Database settings
 DATABASES = {
     'default': {
-        'ENGINE': 'mysql.connector.django',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('MYSQL_DATABASE','todobackend'),
         'USER': os.environ.get('MYSQL_USER','todo'),
         'PASSWORD': os.environ.get('MYSQL_PASSWORD','password'),
         'HOST': os.environ.get('MYSQL_HOST','localhost'),
         'PORT': os.environ.get('MYSQL_PORT','3306'),
         # See https://code.djangoproject.com/ticket/30469#comment:5
-        'OPTIONS': {
-            'use_pure': True
-        }
+        # 'OPTIONS': {
+        #     'use_pure': True
+        # }
     }
 }
 

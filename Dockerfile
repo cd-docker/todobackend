@@ -1,15 +1,19 @@
 # syntax = docker/dockerfile:experimental
-FROM alpine:3.10
+######################
+###   TEST STAGE   ###
+######################
+FROM alpine:3.10 as test
 LABEL application=todobackend
 
-# Environment settings
+# Language settings
 ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # Install utilities
 RUN apk add --no-cache bash git
 
 # Install build dependencies
-RUN apk add --no-cache gcc python3-dev libffi-dev musl-dev linux-headers mariadb-dev
+RUN apk add --no-cache gcc python3-dev musl-dev linux-headers mariadb-dev
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install pipenv
 
 # Copy Pipfiles
@@ -34,3 +38,30 @@ ENTRYPOINT ["pipenv", "run"]
 
 # Run test commands by default
 CMD ["python3", "manage.py", "test", "--noinput"]
+
+#######################
+###  RELEASE STAGE  ###
+#######################
+FROM alpine:3.10
+LABEL application=todobackend
+
+# Install operating system dependencies
+RUN apk add --no-cache python3 mariadb-connector-c
+
+# Create application user
+RUN addgroup -g 1000 app && \
+    adduser -u 1000 -G app -D app
+
+# Copy application source and virtual environment
+COPY --from=test --chown=app:app /app /app
+
+# Create public volume
+# RUN mkdir /public
+# RUN chown app:app /public
+# VOLUME /public
+
+# Set virtual environment path, working directory and application user
+ENV VIRTUAL_ENV=/app/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+WORKDIR /app
+USER app

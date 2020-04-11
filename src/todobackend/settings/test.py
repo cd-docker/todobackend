@@ -23,15 +23,15 @@ NOSE_ARGS = [
 DATABASES = {
     'default': {
         # Supports AWS X-Ray
-        'ENGINE': 'mysql.connector.django',
+        'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('MYSQL_DATABASE','todobackend'),
         'USER': os.environ.get('MYSQL_USER','todo'),
         'PASSWORD': os.environ.get('MYSQL_PASSWORD','password'),
         'HOST': os.environ.get('MYSQL_HOST','localhost'),
         'PORT': os.environ.get('MYSQL_PORT','3306'),
         # See https://code.djangoproject.com/ticket/30469#comment:5
-        'OPTIONS': {
-            'use_pure': True
-        }
+        # 'OPTIONS': {
+        #     'use_pure': True
+        # }
     }
 }

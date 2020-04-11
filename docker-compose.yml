@@ -1,10 +1,12 @@
 version: '2.4'
 
 services:
+  # Test services
   test:
     build:
       context: .
       dockerfile: Dockerfile
+      target: test
     depends_on:
       test-db:
         condition: service_healthy
@@ -23,4 +25,40 @@ services:
       retries: 10
     environment:
       MYSQL_DATABASE: todobackend
+      MYSQL_ROOT_PASSWORD: password
+  # Release services
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DEBUG: 'true'
+      DJANGO_SETTINGS_MODULE: todobackend.settings.release
+      MYSQL_HOST: db
+      MYSQL_USER: todo
+      MYSQL_PASSWORD: password
+    ports:
+      - 8000:8000
+    command:
+      - uwsgi
+      - --http=0.0.0.0:8000
+      - --module=todobackend.wsgi
+      - --master
+      - --check-static=/public
+      - --die-on-term
+      - --processes=4
+      - --threads=10
+  db:
+    image: mariadb:10.5
+    healthcheck:
+      test: mysqlshow -u $$MYSQL_USER -p$$MYSQL_PASSWORD
+      interval: 3s
+      retries: 10
+    environment:
+      MYSQL_DATABASE: todobackend
+      MYSQL_USER: todo
+      MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: password
