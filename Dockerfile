@@ -9,8 +9,8 @@ ENV LC_ALL=C.UTF-8
 RUN apk add --no-cache gcc python3-dev musl-dev linux-headers mariadb-dev
 RUN pip3 install pipenv
 
-# Copy project
-COPY . /app/
+# Copy Pipfiles
+COPY Pipfile* /app/
 WORKDIR /app
 
 # Build and install application dependencies
@@ -25,3 +25,7 @@ ENTRYPOINT ["pipenv", "run"]
 # Run test commands by default
 WORKDIR /app/src
 CMD ["python", "manage.py", "test", "--noinput"]
+
+# Copy application source
+COPY tests /app/tests
+COPY src /app/src
