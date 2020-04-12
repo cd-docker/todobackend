@@ -25,20 +25,23 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
   # Release services
-  app:
+  release:
     build:
       context: .
       dockerfile: Dockerfile
       target: release
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       DEBUG: 'true'
       DJANGO_SETTINGS_MODULE: todobackend.settings.release
       MYSQL_HOST: db
       MYSQL_USER: todo
       MYSQL_PASSWORD: password
+  app:
+    extends:
+      service: release
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - 8000:8000
     command:
@@ -50,6 +53,17 @@ services:
       - --die-on-term
       - --processes=4
       - --threads=10
+  migrate:
+    extends:
+      service: release
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - python
+      - manage.py
+      - migrate
+      - --no-input
   db:
     image: mariadb:10.5
     healthcheck:
