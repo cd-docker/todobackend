@@ -71,7 +71,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Install operating system dependencies
-RUN apk add --no-cache python3 mariadb-connector-c
+RUN apk add --no-cache python3 mariadb-connector-c curl
 
 # Create application user
 RUN addgroup -g 1000 app && \
