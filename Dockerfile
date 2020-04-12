@@ -80,6 +80,11 @@ RUN addgroup -g 1000 app && \
 # Copy application files
 COPY --from=test --chown=app:app /app /app
 
+# Create public and reports volumes
+RUN mkdir /public /reports
+RUN chown app:app /public /reports
+VOLUME /public /reports
+
 # Set virtual environment path, working directory and application user
 ENV PATH="/app/venv/bin:$PATH"
 WORKDIR /app/src

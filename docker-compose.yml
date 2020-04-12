@@ -1,5 +1,9 @@
 version: '2.4'
 
+volumes:
+  public:
+    driver: local
+
 services:
   # Test services
   test:
@@ -42,6 +46,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - public:/public
     ports:
       - 8000:8000
     command:
