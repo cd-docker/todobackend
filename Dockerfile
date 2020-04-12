@@ -1,5 +1,8 @@
 # syntax = docker/dockerfile:experimental
-FROM alpine:3.10
+########################
+####   TEST STAGE   ####
+########################
+FROM alpine:3.10 as test
 LABEL application=todobackend
 
 # Language settings
@@ -30,6 +33,19 @@ RUN --mount=type=cache,target=/root/.cache \
 RUN --mount=type=cache,target=/build \
     rsync -avh --delete /build/ $(pipenv --venv)/ 
 
+# Build production virtual environment
+RUN --mount=type=cache,target=/root/.cache \
+    --mount=type=cache,target=/app/venv \
+    --mount=type=cache,target=/build \
+    virtualenv /app/venv && \
+    VIRTUAL_ENV=/app/venv pipenv install --deploy && \
+    VIRTUAL_ENV=/app/venv pipenv clean && \
+    rsync -avh --delete /app/venv/ /build/
+
+# Copy production virtual environment from temporary build cache
+RUN --mount=type=cache,target=/build \
+    rsync -avh --delete /build/ /app/venv/
+
 # Test reports
 VOLUME /reports
 
@@ -43,3 +59,28 @@ CMD ["python", "manage.py", "test", "--noinput"]
 # Copy application source
 COPY tests /app/tests
 COPY src /app/src
+
+###########################
+####   RELEASE STAGE   ####
+###########################
+FROM alpine:3.10 as release
+LABEL application=todobackend
+
+# Language settings
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# Install operating system dependencies
+RUN apk add --no-cache python3 mariadb-connector-c
+
+# Create application user
+RUN addgroup -g 1000 app && \
+    adduser -u 1000 -G app -D app
+
+# Copy application files
+COPY --from=test --chown=app:app /app /app
+
+# Set virtual environment path, working directory and application user
+ENV PATH="/app/venv/bin:$PATH"
+WORKDIR /app/src
+USER app

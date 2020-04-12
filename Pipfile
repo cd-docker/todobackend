@@ -15,6 +15,7 @@ django-cors-headers = "~=3.0"
 mysqlclient = "*"
 pytest = "*"
 requests = "*"
+uwsgi = "*"
 
 [requires]
 python_version = "3.7"

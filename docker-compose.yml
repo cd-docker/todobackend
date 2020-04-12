@@ -6,6 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: test
     depends_on:
       test-db:
         condition: service_healthy
