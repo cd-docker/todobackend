@@ -11,6 +11,10 @@ test:
 	docker-compose build
 	${INFO} "Running tests..."
 	docker-compose up --abort-on-container-exit test
+	${INFO} "Collecting test reports..."
+	mkdir -p build
+	test=$$(docker-compose ps -q test)
+	docker cp $$test:/reports build
 	${INFO} "Test stage complete"
 
 release:
@@ -20,12 +24,16 @@ release:
 	docker-compose run app python manage.py collectstatic --no-input
 	${INFO} "Running acceptance tests..."
 	docker-compose up --abort-on-container-exit acceptance
+	${INFO} "Collecting test reports..."
+	acceptance=$$(docker-compose ps -q acceptance)
+	docker cp $$acceptance:/reports/acceptance.xml build/reports/acceptance.xml
 	${INFO} "Release stage complete"
 
 clean:
 	${INFO} "Cleaning environment..."
 	docker-compose down -v
 	docker system prune --filter label=application=todobackend -f
+	rm -rf build
 	${INFO} "Clean stage complete"
 
 # Recommended settings
