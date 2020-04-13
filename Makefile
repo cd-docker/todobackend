@@ -1,7 +1,7 @@
 .PHONY: test release clean
 
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
+export DOCKER_BUILDKIT ?= 1
+export COMPOSE_DOCKER_CLI_BUILD ?= 1
 
 test:
 	${INFO} "Pulling latest images..."
@@ -38,6 +38,7 @@ release:
 		then ${ERROR} "Test failure"
 	fi
 	${INFO} "Release stage complete"
+	${INFO} "App running at http://$$(docker-compose port app 8000 | sed s/0.0.0.0/localhost/g)"
 
 clean:
 	${INFO} "Cleaning environment..."
