@@ -1,7 +1,11 @@
-.PHONY: test release clean
+.PHONY: test release clean version publish
 
 export DOCKER_BUILDKIT ?= 1
 export COMPOSE_DOCKER_CLI_BUILD ?= 1
+export APP_VERSION ?= $(shell git rev-parse --short HEAD)
+
+version:
+	echo $(APP_VERSION)
 
 test:
 	${INFO} "Pulling latest images..."
@@ -39,6 +43,11 @@ release:
 	fi
 	${INFO} "Release stage complete"
 	${INFO} "App running at http://$$(docker-compose port app 8000 | sed s/0.0.0.0/localhost/g)"
+
+publish:
+	${INFO} "Publishing images..."
+	docker-compose push
+	${INFO} "Publish stage complete"
 
 clean:
 	${INFO} "Cleaning environment..."
