@@ -15,3 +15,4 @@ release:
 
 clean:
 	docker-compose down -v
+	docker system prune --filter label=application=todobackend -f
