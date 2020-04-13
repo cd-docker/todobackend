@@ -10,11 +10,16 @@ test:
 	docker-compose build --pull release
 	docker-compose build
 	${INFO} "Running tests..."
-	docker-compose up --abort-on-container-exit test
+	docker-compose up test
 	${INFO} "Collecting test reports..."
 	mkdir -p build
 	test=$$(docker-compose ps -q test)
 	docker cp $$test:/reports build
+	${INFO} "Checking test result..."
+	result=$$(docker inspect -f "{{ .State.ExitCode }}" $$test)
+	if [[ $$result -ne 0 ]]
+		then ${ERROR} "Test failure"
+	fi
 	${INFO} "Test stage complete"
 
 release:
@@ -23,10 +28,15 @@ release:
 	${INFO} "Collecting static files..."
 	docker-compose run app python manage.py collectstatic --no-input
 	${INFO} "Running acceptance tests..."
-	docker-compose up --abort-on-container-exit acceptance
+	docker-compose up acceptance
 	${INFO} "Collecting test reports..."
 	acceptance=$$(docker-compose ps -q acceptance)
 	docker cp $$acceptance:/reports/acceptance.xml build/reports/acceptance.xml
+	${INFO} "Checking test result..."
+	result=$$(docker inspect -f "{{ .State.ExitCode }}" $$acceptance)
+	if [[ $$result -ne 0 ]]
+		then ${ERROR} "Test failure"
+	fi
 	${INFO} "Release stage complete"
 
 clean:
@@ -46,5 +56,5 @@ SHELL=/bin/bash
 YELLOW := "\e[1;33m"
 RED := "\e[1;31m"
 NC := "\e[0m"
-INFO := @bash -c 'printf $(YELLOW); echo "=> $$0"; printf $(NC)'
-ERROR := @bash -c 'printf $(RED); echo "ERROR: $$0"; printf $(NC); exit 1'
+INFO := bash -c 'printf $(YELLOW); echo "=> $$0"; printf $(NC)'
+ERROR := bash -c 'printf $(RED); echo "ERROR: $$0"; printf $(NC); exit 1'
