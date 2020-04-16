@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'cloudhotspot/docker-agent'
-      args '-v /var/run/docker.sock:/var/run/docker.sock'
+      args '-v /var/run/docker.sock:/var/run/docker.sock --mount type=tmpfs,destination=/.docker'
     }
   }
   environment {
