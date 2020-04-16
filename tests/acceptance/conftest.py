@@ -15,7 +15,8 @@ def session():
     session = requests.session()
     session.headers = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Connection': 'close'
     }
     yield session
 
