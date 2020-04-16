@@ -17,12 +17,11 @@ pipeline {
         sh 'make release'
       }
     }
-
-    stage('Clean') {
-      steps {
-        sh 'make clean'
-      }
+  }
+  post {
+    always {
+      junit allowEmptyResults: true, testResults: '**/reports/*.xml'
+      sh 'make clean'
     }
-
   }
 }
