@@ -1,4 +1,4 @@
-.PHONY: test release clean version publish
+.PHONY: test release clean version publish login logout
 
 export DOCKER_BUILDKIT ?= 1
 export COMPOSE_DOCKER_CLI_BUILD ?= 1
@@ -44,10 +44,20 @@ release:
 	${INFO} "Release stage complete"
 	${INFO} "App running at http://$$(docker-compose port app 8000 | sed s/0.0.0.0/localhost/g)"
 
+login:
+	${INFO} "Logging into Docker Hub..."
+	cat $$DOCKER_PASSWORD | docker login --username $$DOCKER_USER --password-stdin
+	${INFO} "Login stage complete"
+
 publish:
 	${INFO} "Publishing images..."
 	docker-compose push
 	${INFO} "Publish stage complete"
+
+logout:
+	${INFO} "Logging out..."
+	docker logout
+	${INFO} "Logout stage complete"
 
 clean:
 	${INFO} "Cleaning environment..."

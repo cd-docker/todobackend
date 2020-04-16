@@ -5,6 +5,10 @@ pipeline {
       args '-v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
+  environment {
+    DOCKER_USER     = credentials('docker-user')
+    DOCKER_PASSWORD = credentials('docker-password')
+  }
   stages {
     stage('Test') {
       steps {
@@ -17,11 +21,19 @@ pipeline {
         sh 'make release'
       }
     }
+
+    stage('Publish') {
+      steps {
+        sh 'make login'
+        sh 'make publish'
+      }
+    }
   }
   post {
     always {
       junit allowEmptyResults: true, testResults: '**/reports/*.xml'
       sh 'make clean'
+      sh 'make logout'
     }
   }
 }
