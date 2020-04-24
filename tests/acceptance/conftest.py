@@ -4,35 +4,35 @@ import requests
 import pytest
 
 @pytest.fixture(scope='session')
-def url():
+def fixture_url():
     """Test Server URL Fixture"""
     yield os.environ.get('TEST_URL', 'http://localhost:8000/todos')
 
 
 @pytest.fixture
-def session():
+def fixture_session():
     """HTTP client session fixture"""
-    session = requests.session()
-    session.headers = {
+    fixture_session = requests.session()
+    fixture_session.headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Connection': 'close'
     }
-    yield session
+    yield fixture_session
 
 
 @pytest.fixture
-def origin(session):
+def fixture_origin(fixture_session):
     """HTTP client session fixture with origin header"""
-    session.headers = {
-        **session.headers,
+    fixture_session.headers = {
+        **fixture_session.headers,
         'Origin': 'http://example.com'
     }
-    yield session
+    yield fixture_session
 
 
 @pytest.fixture
-def item():
+def fixture_item():
     """Todo item"""
     yield { 
         'title': 'Walk the dog',
@@ -42,6 +42,6 @@ def item():
 
 
 @pytest.fixture
-def create_item(session, url, item):
+def fixture_create_item(fixture_session, fixture_url, fixture_item):
     """Creates todo item"""
-    yield session.post(url, json=item)
+    yield fixture_session.post(fixture_url, json=fixture_item)
