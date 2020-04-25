@@ -34,7 +34,7 @@ def test_create_todo_item(fixture_session, fixture_create_item, fixture_item):
     assert result == { 
         'id': item_id,
         'url': item_url,
-        **fixture_create_item,
+        **fixture_create_item.json(),
     }
 
 
@@ -51,24 +51,24 @@ def test_put_todo_item(fixture_session, fixture_create_item):
     assert response.json() == item
 
 
-def test_patch_todo_item(session, fixture_create_item):
+def test_patch_todo_item(fixture_session, fixture_create_item):
     # Arrange
     item = fixture_create_item.json()
     item_url = fixture_create_item.headers['location']
     assert item['completed'] == False
     patch = {'completed': True}
     # Act
-    response = session.patch(item_url, json=patch)
+    response = fixture_session.patch(item_url, json=patch)
     # Assert
     assert response.status_code == 200
     assert response.json() == { **item, **patch }
 
 
-def test_delete_todo_item(session, url, create_item):
+def test_delete_todo_item(fixture_session, fixture_create_item):
     # Arrange
-    item = create_item.json()
-    item_url = create_item.headers['location']
+    item = fixture_create_item.json()
+    item_url = fixture_create_item.headers['location']
     # Act
-    response = session.delete(item_url)
+    response = fixture_session.delete(item_url)
     # Assert
     assert response.status_code == 204
