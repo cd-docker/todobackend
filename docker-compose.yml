@@ -30,7 +30,7 @@ services:
       MYSQL_ROOT_PASSWORD: password
   # Release services
   release:
-    image: continuousdeliverydocker/todobackend:latest
+    image: continuousdeliverydocker/todobackend:${GIT_COMMIT}
     build:
       context: .
       dockerfile: Dockerfile
@@ -42,7 +42,6 @@ services:
       MYSQL_USER: todo
       MYSQL_PASSWORD: password
   app:
-    image: continuousdeliverydocker/todobackend:${APP_VERSION}
     extends:
       service: release
     depends_on:
