@@ -4,7 +4,7 @@
 
 DOCKER_BUILDKIT ?= 1
 COMPOSE_DOCKER_CLI_BUILD ?= 1
-GIT_COMMIT := $(shell git rev-parse --short HEAD)
+GIT_COMMIT := $(shell git rev-parse HEAD)
 GIT_TAG := $(shell git tag | grep ^[[:digit:]]*.[[:digit:]]*.[[:digit:]]*$$ || printf '0.0.0')
 PR_COMMIT := $(shell git show --no-patch --format="%H" HEAD^2 2>/dev/null || echo $(GIT_COMMIT))
 export
