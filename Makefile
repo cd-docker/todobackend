@@ -62,7 +62,7 @@ logout:
 clean:
 	${INFO} "Cleaning environment..."
 	docker-compose down -v
-	docker system prune --filter label=application=todobackend -f
+	docker images -q -f dangling=true -f label=application=todofrontend | xargs -I ARGS docker rmi -f --no-prune ARGS
 	rm -rf build
 	${INFO} "Clean stage complete"
 
