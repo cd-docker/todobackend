@@ -85,6 +85,16 @@ logout:
 	docker logout
 	${INFO} "Logout stage complete"
 
+deploy:
+	$(call version)
+	${INFO} "Deploying environment..."
+	aws cloudformation deploy --template-file template.yaml \
+							  --stack-name todobackend \
+							  --parameter-overrides ApplicationVersion=$$current_version \
+							  --no-fail-on-empty-changeset \
+							  --profile cd-docker
+	${INFO} "Deploy stage complete..."
+
 clean:
 	${INFO} "Cleaning environment..."
 	docker-compose down -v
