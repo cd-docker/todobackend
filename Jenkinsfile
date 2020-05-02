@@ -58,6 +58,16 @@ pipeline {
         sh 'make publish'
       }
     }
+
+    stage('Tag') {
+      when {
+        branch 'master'
+      }
+      steps {
+        sh 'make login'
+        sh 'make tag'
+      }
+    }
   }
   post {
     always {
