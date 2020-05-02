@@ -8,6 +8,7 @@ pipeline {
   environment {
     DOCKER_USER     = credentials('docker-user')
     DOCKER_PASSWORD = credentials('docker-password')
+    GITHUB_TOKEN    = credentials('github-token')
   }
   stages {
     stage('Build') {
