@@ -13,10 +13,7 @@ pipeline {
   stages {
     stage('Build') {
       when {
-        allOf {
-          not { branch 'master' }
-          changeRequest()
-        }
+        changeRequest()
       }
       steps {
         sh 'make build'
@@ -25,10 +22,7 @@ pipeline {
 
     stage('Test') {
       when {
-        allOf {
-          not { branch 'master' }
-          changeRequest()
-        }
+        changeRequest()
       }
       steps {
         sh 'make test'
@@ -37,10 +31,7 @@ pipeline {
 
     stage('Release') {
       when {
-        allOf {
-          not { branch 'master' }
-          changeRequest()
-        }
+        changeRequest()
       }
       steps {
         sh 'make release'
@@ -49,10 +40,7 @@ pipeline {
 
     stage('Publish') {
       when {
-        allOf {
-          not { branch 'master' }
-          changeRequest()
-        }
+        changeRequest()
       }
       steps {
         sh 'make login'
