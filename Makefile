@@ -15,7 +15,7 @@ version:
 	$(call version)
 	${INFO} "Git commit: $(GIT_COMMIT)"
 	${INFO} "Pull request commit: $(PR_COMMIT)"
-	${INFO} "Current version: $(GIT_TAG)"
+	${INFO} "Current version: $$current_version"
 	${INFO} "Next version: $$version"
 
 build:
