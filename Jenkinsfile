@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'cloudhotspot/docker-agent'
+      image 'continuousdeliverydocker/docker-agent'
       args '-v /var/run/docker.sock:/var/run/docker.sock --mount type=tmpfs,destination=/.docker'
     }
   }
@@ -10,6 +10,12 @@ pipeline {
     DOCKER_PASSWORD = credentials('docker-password')
   }
   stages {
+    stage('Build') {
+      steps {
+        sh 'make build'
+      }
+    }
+
     stage('Test') {
       steps {
         sh 'make test'
