@@ -11,24 +11,48 @@ pipeline {
   }
   stages {
     stage('Build') {
+      when {
+        allOf {
+          not { branch 'master' }
+          changeRequest()
+        }
+      }
       steps {
         sh 'make build'
       }
     }
 
     stage('Test') {
+      when {
+        allOf {
+          not { branch 'master' }
+          changeRequest()
+        }
+      }
       steps {
         sh 'make test'
       }
     }
 
     stage('Release') {
+      when {
+        allOf {
+          not { branch 'master' }
+          changeRequest()
+        }
+      }
       steps {
         sh 'make release'
       }
     }
 
     stage('Publish') {
+      when {
+        allOf {
+          not { branch 'master' }
+          changeRequest()
+        }
+      }
       steps {
         sh 'make login'
         sh 'make publish'
