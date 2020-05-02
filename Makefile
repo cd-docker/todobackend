@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: all build test release clean version publish login logout
+.PHONY: all build test release clean version publish login logout tag
 
 DOCKER_BUILDKIT ?= 1
 COMPOSE_DOCKER_CLI_BUILD ?= 1
@@ -111,7 +111,7 @@ define version
 	current_version=$${current_versions[@]:(-1)}
 	target_version=$(file <VERSION)
 	parts=( $${current_version//./ } )
-	((parts[2]++))
+	((++parts[2]))
 	new_version="$${parts[0]}.$${parts[1]}.$${parts[2]}"
 	versions=( $$(printf "$$target_version\n$$new_version" | sort -V) )
 	version=$${versions[@]:(-1)}
