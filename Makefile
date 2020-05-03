@@ -62,6 +62,7 @@ release:
 	${INFO} "App running at http://$$(docker-compose port app 8000 | sed s/0.0.0.0/localhost/g)"
 
 tag:
+	git fetch --tags
 	$(call version)
 	${INFO} "Pulling image $(PR_COMMIT)..."
 	docker pull continuousdeliverydocker/todobackend:$(PR_COMMIT)
