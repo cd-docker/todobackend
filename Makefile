@@ -62,7 +62,6 @@ release:
 	${INFO} "App running at http://$$(docker-compose port app 8000 | sed s/0.0.0.0/localhost/g)"
 
 tag:
-	git fetch --tags
 	$(call version)
 	${INFO} "Pulling image $(PR_COMMIT)..."
 	docker pull continuousdeliverydocker/todobackend:$(PR_COMMIT)
@@ -128,6 +127,7 @@ ERROR := bash -c 'printf $(RED); echo "ERROR: $$0"; printf $(NC); exit 1'
 
 # Functions
 define version
+	git fetch --tags
 	current_versions=( $$(printf "$(GIT_TAG)" | sort -V) )
 	current_version=$${current_versions[@]:(-1)}
 	target_version=$(file <VERSION)
