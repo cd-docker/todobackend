@@ -48,6 +48,20 @@ pipeline {
       }
     }
 
+    stage('Staging') {
+      when {
+        changeRequest()
+      }
+      environment {
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION = 'ap-southeast-2'
+      }
+      steps {
+        sh 'make deploy/staging'
+      }
+    }
+
     stage('Tag') {
       when {
         branch 'master'
@@ -55,6 +69,20 @@ pipeline {
       steps {
         sh 'make login'
         sh 'make tag'
+      }
+    }
+
+    stage('Production') {
+      when {
+        branch 'master'
+      }
+      environment { 
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION = 'ap-southeast-2'
+      }
+      steps {
+        sh 'make deploy/production'
       }
     }
   }
