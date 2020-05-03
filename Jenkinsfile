@@ -63,8 +63,17 @@ pipeline {
         AWS_DEFAULT_REGION = 'us-west-2'
       }
       steps {
+        githubNotify status: 'PENDING', description: 'Deploying to staging', context: 'continuous-integration/jenkins/staging'
         sh 'make deploy/staging'
         sh 'make acceptance/staging'
+      }
+      post {
+        success {
+          githubNotify status: 'SUCCESS', description: 'Successfully deployed to staging', context: 'continuous-integration/jenkins/staging'
+        }
+        failure {
+          githubNotify status: 'FAILURE', description: 'Failed deploying to staging', context: 'continuous-integration/jenkins/staging'
+        }
       }
     }
 
