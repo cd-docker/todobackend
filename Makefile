@@ -7,6 +7,9 @@ COMPOSE_DOCKER_CLI_BUILD ?= 1
 GIT_COMMIT := $(shell git rev-parse HEAD)
 GIT_TAG := $(shell git tag | grep ^[[:digit:]]*.[[:digit:]]*.[[:digit:]]*$$ || printf '0.0.0')
 PR_COMMIT := $(shell git show --no-patch --format="%H" HEAD^2 2>/dev/null || echo $(GIT_COMMIT))
+ARTIFACT_BUCKET ?= 986577447886-us-west-2-artifacts
+staging := GIT_COMMIT
+production := current_version
 export
 
 all: clean build test release
@@ -62,11 +65,12 @@ tag:
 	$(call version)
 	${INFO} "Pulling image $(PR_COMMIT)..."
 	docker pull continuousdeliverydocker/todobackend:$(PR_COMMIT)
-	${INFO} "Tagging image $(PR_COMMIT) with $$version and latest tags..."
-	docker tag continuousdeliverydocker/todobackend:$(PR_COMMIT) continuousdeliverydocker/todobackend:$$version
-	docker tag continuousdeliverydocker/todobackend:$(PR_COMMIT) continuousdeliverydocker/todobackend:latest
-	docker push continuousdeliverydocker/todobackend:$$version
-	docker push continuousdeliverydocker/todobackend:latest
+	tags=( "$(GIT_COMMIT)" "$$version" "latest" )	
+	for tag in "$${tags[@]}"; do
+		${INFO} "Tagging image $(PR_COMMIT) with tag $$tag..."
+		docker tag continuousdeliverydocker/todobackend:$(PR_COMMIT) continuousdeliverydocker/todobackend:$$tag
+		docker push continuousdeliverydocker/todobackend:$$tag
+	done
 	hub release create -m "$$version" $$version
 	${INFO} "Tag stage complete"
 
@@ -84,6 +88,22 @@ logout:
 	${INFO} "Logging out..."
 	docker logout
 	${INFO} "Logout stage complete"
+
+deploy/%:
+	$(call version)
+	${INFO} "Packaging template..."
+	mkdir -p build
+	aws cloudformation package --s3-bucket $(ARTIFACT_BUCKET) \
+							   --s3-prefix todobackend \
+							   --template-file template.yaml \
+							   --output-template-file build/template.yaml
+	${INFO} "Deploying environment..."
+	aws cloudformation deploy --template-file build/template.yaml \
+							  --stack-name todobackend-$* \
+							  --parameter-overrides Environment=$* ApplicationVersion=$${$($*)} \
+							  --no-fail-on-empty-changeset \
+							  --capabilities CAPABILITY_NAMED_IAM
+	${INFO} "Deploy stage ($*) complete"
 
 clean:
 	${INFO} "Cleaning environment..."

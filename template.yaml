@@ -1,0 +1,405 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Todobackend
+
+Parameters:
+  ApplicationVersion:
+    Type: String
+    Description: Application Version
+  Environment:
+    Type: String
+    Description: Target Environment
+    AllowedValues:
+      - staging
+      - production
+
+Resources:
+  # Load Balancer Resources
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Subnets:
+        - Fn::ImportValue: !Sub ${Environment}-subnet-a
+        - Fn::ImportValue: !Sub ${Environment}-subnet-b
+      SecurityGroups:
+        - !Ref ApplicationLoadBalancerSecurityGroup
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value : 30
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-alb
+  ApplicationTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Protocol: HTTP
+      Port: 8000
+      TargetType: ip
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-vpc
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 30
+  ApplicationListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - TargetGroupArn: !Ref ApplicationTargetGroup
+          Type: forward
+  ApplicationLoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Application Load Balancer Security Group
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-loadbalancer-sg
+  ApplicationLoadBalancerToApplicationIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 8000
+      ToPort: 8000
+      GroupId: !Ref ApplicationSecurityGroup
+      SourceSecurityGroupId: !Ref ApplicationLoadBalancerSecurityGroup
+  ApplicationLoadBalancerToApplicationEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 8000
+      ToPort: 8000
+      GroupId: !Ref ApplicationLoadBalancerSecurityGroup
+      DestinationSecurityGroupId: !Ref ApplicationSecurityGroup
+  # ECS Resources
+  ApplicationCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${AWS::StackName}-cluster
+  ApplicationService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - ApplicationLogGroup
+      - ApplicationListener
+      - MigrateTask
+    Properties:
+      ServiceName: !Sub ${AWS::StackName}-application-service
+      Cluster: !Ref ApplicationCluster
+      TaskDefinition: !Ref ApplicationTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref ApplicationSecurityGroup
+          Subnets:
+            - Fn::ImportValue: !Sub ${Environment}-subnet-a
+            - Fn::ImportValue: !Sub ${Environment}-subnet-b
+      DeploymentConfiguration:
+          MinimumHealthyPercent: 100
+          MaximumPercent: 200
+      LoadBalancers:
+        - ContainerName: todobackend
+          ContainerPort: 8000
+          TargetGroupArn: !Ref ApplicationTargetGroup
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-vpc
+      GroupDescription: !Sub ${AWS::StackName} Application Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-application-sg
+  ApplicationTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${AWS::StackName}-task-definition
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !GetAtt ApplicationTaskExecutionRole.Arn
+      Cpu: 256
+      Memory: 512
+      RequiresCompatibilities:
+        - FARGATE
+      Volumes:
+        - Name: public
+      ContainerDefinitions:
+        - Name: todobackend
+          Image: !Sub continuousdeliverydocker/todobackend:${ApplicationVersion}
+          DependsOn:
+            - ContainerName: collectstatic
+              Condition: COMPLETE
+          Command:
+            - uwsgi
+            - --http=0.0.0.0:8000
+            - --module=todobackend.wsgi
+            - --master
+            - --check-static=/public
+            - --die-on-term
+            - --processes=4
+            - --threads=10
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -fs localhost:8000
+            Interval: 5
+            Retries: 6
+          MountPoints:
+            - SourceVolume: public
+              ReadOnly: true
+              ContainerPath: /public
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub /${AWS::StackName}/ecs
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: docker
+          PortMappings:
+            - ContainerPort: 8000
+              Protocol: tcp
+          Secrets:
+            - Name: MYSQL_PASSWORD
+              ValueFrom: !Ref DatabaseSecret
+            - Name: SECRET_KEY
+              ValueFrom: !Ref ApplicationSecret
+          Environment:
+            - Name: DJANGO_SETTINGS_MODULE
+              Value: todobackend.settings.release
+            - Name: MYSQL_HOST
+              Value: !GetAtt ApplicationDatabase.Endpoint.Address
+            - Name: MYSQL_USER
+              Value: todo
+        - Name: collectstatic
+          Image: !Sub continuousdeliverydocker/todobackend:${ApplicationVersion}
+          Essential: false
+          Command:
+            - python
+            - manage.py
+            - collectstatic
+            - --no-input
+          MountPoints:
+            - SourceVolume: public
+              ContainerPath: /public
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub /${AWS::StackName}/ecs
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: docker
+          Environment:
+            - Name: DJANGO_SETTINGS_MODULE
+              Value: todobackend.settings.release
+  ApplicationTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: EcsTaskExecutionRole
+          PolicyDocument:
+            Statement:
+              - Sid: SecretsManager
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref ApplicationSecret
+                  - !Ref DatabaseSecret
+              - Sid: CloudwatchLogsPermissions
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt ApplicationLogGroup.Arn
+  ApplicationLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub /${AWS::StackName}/ecs
+      RetentionInDays: 7
+  # Migrate Task
+  MigrateTask:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn:
+      - ApplicationDatabase
+    Properties:
+      ServiceToken: !GetAtt EcsTaskRunner.Arn
+      Cluster: !Ref ApplicationCluster
+      TaskDefinition: !Ref MigrateTaskDefinition
+      Subnets:
+        - Fn::ImportValue: !Sub ${Environment}-subnet-a
+        - Fn::ImportValue: !Sub ${Environment}-subnet-b
+      SecurityGroups:
+        - !Ref ApplicationSecurityGroup
+  MigrateTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${AWS::StackName}-migrate-task-definition
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !GetAtt ApplicationTaskExecutionRole.Arn
+      Cpu: 256
+      Memory: 512
+      RequiresCompatibilities:
+        - FARGATE
+      ContainerDefinitions:
+        - Name: migrate
+          Image: !Sub continuousdeliverydocker/todobackend:${ApplicationVersion}
+          Secrets:
+            - Name: MYSQL_PASSWORD
+              ValueFrom: !Ref DatabaseSecret
+          Environment:
+            - Name: DJANGO_SETTINGS_MODULE
+              Value: todobackend.settings.release
+            - Name: MYSQL_HOST
+              Value: !Sub ${ApplicationDatabase.Endpoint.Address}
+            - Name: MYSQL_USER
+              Value: todo
+          Command:
+            - python3
+            - manage.py
+            - migrate
+            - --no-input
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub /${AWS::StackName}/ecs
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: docker
+  # ECS Task Runner
+  EcsTaskRunner:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - EcsTaskRunnerLogGroup
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ecs-tasks
+      Description: !Sub ${AWS::StackName} ECS Task Runner
+      Handler: ecs_task.handler
+      MemorySize: 128
+      Runtime: python3.7
+      Timeout: 900
+      Role: !Sub ${EcsTaskRunnerRole.Arn}
+      Code: scripts/
+  EcsTaskRunnerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: EcsTaskRunnerPermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: EcsTasks
+                Effect: Allow
+                Action:
+                - ecs:DescribeTasks
+                - ecs:ListTasks
+                - ecs:RunTask
+                Resource: "*"
+                Condition:
+                  ArnEquals:
+                    ecs:cluster: !Sub ${ApplicationCluster.Arn}
+              - Sid: PassRole
+                Effect: Allow
+                Action:
+                - iam:PassRole
+                Resource: !GetAtt ApplicationTaskExecutionRole.Arn
+              - Sid: ManageLambdaLogs
+                Effect: Allow
+                Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+                Resource: !Sub ${EcsTaskRunnerLogGroup.Arn}
+  EcsTaskRunnerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-ecs-tasks
+      RetentionInDays: 7
+  # Secrets
+  ApplicationSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}/application/secret
+      GenerateSecretString:
+        PasswordLength: 50
+  DatabaseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}/database/secret
+      GenerateSecretString:
+        ExcludeCharacters: /"@
+  # Application Database Resources
+  ApplicationDatabase:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      AllocatedStorage: 10
+      AvailabilityZone: us-west-2a
+      DBInstanceClass: db.t2.micro
+      DBSubnetGroupName: !Ref ApplicationDatabaseSubnetGroup
+      DBName: todobackend
+      Engine: mariadb
+      EngineVersion: 10.4
+      MasterUsername: todo
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseSecret}:SecretString}}'
+      PubliclyAccessible: false
+      StorageType: gp2
+      VPCSecurityGroups:
+        - !GetAtt ApplicationDatabaseSecurityGroup.GroupId
+  ApplicationDatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Application Database Subnet Group
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${Environment}-subnet-a
+        - Fn::ImportValue: !Sub ${Environment}-subnet-b
+  ApplicationDatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${Environment}-vpc
+      GroupDescription: !Sub ${AWS::StackName} Application Database Security Group
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-database-sg
+  ApplicationToApplicationDatabaseIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      GroupId: !Ref ApplicationDatabaseSecurityGroup
+      SourceSecurityGroupId: !Ref ApplicationSecurityGroup
+
+Outputs:
+  ApplicationLoadBalancer:
+    Description: Load Balander DNS Name
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
