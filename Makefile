@@ -105,6 +105,25 @@ deploy/%:
 							  --capabilities CAPABILITY_NAMED_IAM
 	${INFO} "Deploy stage ($*) complete"
 
+acceptance/%:
+	${INFO} "Running acceptance tests in $* environment..."
+	mkdir -p build/reports
+	url=$$(aws cloudformation describe-stacks \
+		--stack-name todobackend-$* \
+		--query "Stacks[].Outputs[?OutputKey=='ApplicationLoadBalancer'].OutputValue" \
+		--output text)
+	export TEST_URL="http://$$url/todos"
+	docker-compose up $*
+	${INFO} "Collecting test reports..."
+	acceptance=$$(docker-compose ps -q $*)
+	docker cp $$acceptance:/reports/acceptance.xml build/reports/$*.xml
+	${INFO} "Checking test result..."
+	result=$$(docker inspect -f "{{ .State.ExitCode }}" $$acceptance)
+	if [[ $$result -ne 0 ]]
+		then ${ERROR} "Test failure"
+	fi
+	${INFO} "Acceptance stage ($*) complete"
+
 clean:
 	${INFO} "Cleaning environment..."
 	docker-compose down -v

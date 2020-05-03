@@ -78,6 +78,7 @@ services:
       - tests/acceptance
       - -v
       - --junitxml=/reports/acceptance.xml
+      - --junitprefix=acceptance
   migrate:
     extends:
       service: release
@@ -100,3 +101,15 @@ services:
       MYSQL_USER: todo
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: password
+  staging:
+    extends:
+      service: release
+    environment:
+      TEST_URL:
+    working_dir: /app
+    command:
+      - pytest
+      - tests/acceptance
+      - -v
+      - --junitxml=/reports/acceptance.xml
+      - --junitprefix=staging

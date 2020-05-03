@@ -17,41 +17,28 @@ pipeline {
         changeRequest()
       }
       steps {
-        sh 'make build'
-      }
-    }
-
-    stage('Test') {
-      when {
-        changeRequest()
-      }
-      steps {
-        sh 'make test'
-      }
-    }
-
-    stage('Release') {
-      when {
-        changeRequest()
-      }
-      steps {
-        sh 'make release'
-      }
-    }
-
-    stage('Publish') {
-      when {
-        changeRequest()
-      }
-      steps {
+        githubNotify status: 'PENDING', description: 'Build in progress', context: 'jenkins/build'
+        sh 'make'
         sh 'make login'
         sh 'make publish'
+      }
+      post {
+        success {
+          githubNotify status: 'SUCCESS', description: 'Build successful', context: 'jenkins/build'
+        }
+        failure {
+          githubNotify status: 'FAILURE', description: 'Build failed', context: 'jenkins/build'
+        }
       }
     }
 
     stage('Staging') {
       when {
+        beforeOptions true
         changeRequest()
+      }
+      options {
+        lock resource: 'todobackend-staging', quantity: 1
       }
       environment {
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
@@ -59,23 +46,27 @@ pipeline {
         AWS_DEFAULT_REGION = 'us-west-2'
       }
       steps {
+        githubNotify status: 'PENDING', description: 'Deploying to staging', context: 'jenkins/staging'
         sh 'make deploy/staging'
+        sh 'make acceptance/staging'
       }
-    }
-
-    stage('Tag') {
-      when {
-        branch 'master'
-      }
-      steps {
-        sh 'make login'
-        sh 'make tag'
+      post {
+        success {
+          githubNotify status: 'SUCCESS', description: 'Successfully deployed to staging', context: 'jenkins/staging'
+        }
+        failure {
+          githubNotify status: 'FAILURE', description: 'Failed deploying to staging', context: 'jenkins/staging'
+        }
       }
     }
 
     stage('Production') {
       when {
+        beforeOptions true
         branch 'master'
+      }
+      options {
+        lock resource: 'todobackend-production', quantity: 1
       }
       environment { 
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
@@ -83,6 +74,8 @@ pipeline {
         AWS_DEFAULT_REGION = 'us-west-2'
       }
       steps {
+        sh 'make login'
+        sh 'make tag'
         sh 'make deploy/production'
       }
     }
