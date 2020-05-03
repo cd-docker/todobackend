@@ -17,35 +17,18 @@ pipeline {
         changeRequest()
       }
       steps {
-        sh 'make build'
-      }
-    }
-
-    stage('Test') {
-      when {
-        changeRequest()
-      }
-      steps {
-        sh 'make test'
-      }
-    }
-
-    stage('Release') {
-      when {
-        changeRequest()
-      }
-      steps {
-        sh 'make release'
-      }
-    }
-
-    stage('Publish') {
-      when {
-        changeRequest()
-      }
-      steps {
+        githubNotify status: 'PENDING', description: 'Build in progress', context: 'jenkins/build'
+        sh 'make'
         sh 'make login'
         sh 'make publish'
+      }
+      post {
+        success {
+          githubNotify status: 'SUCCESS', description: 'Build successful', context: 'jenkins/build'
+        }
+        failure {
+          githubNotify status: 'FAILURE', description: 'Build failed', context: 'jenkins/build'
+        }
       }
     }
 
@@ -63,16 +46,16 @@ pipeline {
         AWS_DEFAULT_REGION = 'us-west-2'
       }
       steps {
-        githubNotify status: 'PENDING', description: 'Deploying to staging', context: 'continuous-integration/jenkins/staging'
+        githubNotify status: 'PENDING', description: 'Deploying to staging', context: 'jenkins/staging'
         sh 'make deploy/staging'
         sh 'make acceptance/staging'
       }
       post {
         success {
-          githubNotify status: 'SUCCESS', description: 'Successfully deployed to staging', context: 'continuous-integration/jenkins/staging'
+          githubNotify status: 'SUCCESS', description: 'Successfully deployed to staging', context: 'jenkins/staging'
         }
         failure {
-          githubNotify status: 'FAILURE', description: 'Failed deploying to staging', context: 'continuous-integration/jenkins/staging'
+          githubNotify status: 'FAILURE', description: 'Failed deploying to staging', context: 'jenkins/staging'
         }
       }
     }
