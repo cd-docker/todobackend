@@ -51,7 +51,11 @@ pipeline {
 
     stage('Staging') {
       when {
+        beforeOptions true
         changeRequest()
+      }
+      options {
+        lock resource: 'todobackend-staging', quantity: 1
       }
       environment {
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
@@ -64,19 +68,13 @@ pipeline {
       }
     }
 
-    stage('Tag') {
-      when {
-        branch 'master'
-      }
-      steps {
-        sh 'make login'
-        sh 'make tag'
-      }
-    }
-
     stage('Production') {
       when {
+        beforeOptions true
         branch 'master'
+      }
+      options {
+        lock resource: 'todobackend-production', quantity: 1
       }
       environment { 
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
@@ -84,6 +82,8 @@ pipeline {
         AWS_DEFAULT_REGION = 'us-west-2'
       }
       steps {
+        sh 'make login'
+        sh 'make tag'
         sh 'make deploy/production'
       }
     }
