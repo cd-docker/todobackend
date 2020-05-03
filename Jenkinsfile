@@ -56,7 +56,7 @@ pipeline {
       environment {
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-        AWS_DEFAULT_REGION = 'ap-southeast-2'
+        AWS_DEFAULT_REGION = 'us-west-2'
       }
       steps {
         sh 'make deploy/staging'
@@ -80,7 +80,7 @@ pipeline {
       environment { 
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-        AWS_DEFAULT_REGION = 'ap-southeast-2'
+        AWS_DEFAULT_REGION = 'us-west-2'
       }
       steps {
         sh 'make deploy/production'
