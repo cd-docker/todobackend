@@ -90,7 +90,7 @@ services:
       - migrate
       - --no-input
   db:
-    image: mariadb:10.5
+    image: mariadb:10.4
     healthcheck:
       test: mysqlshow -u $$MYSQL_USER -p$$MYSQL_PASSWORD
       interval: 3s
