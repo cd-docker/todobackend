@@ -60,6 +60,7 @@ pipeline {
       }
       steps {
         sh 'make deploy/staging'
+        sh 'make acceptance/staging'
       }
     }
 
