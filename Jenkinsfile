@@ -1,6 +1,7 @@
 pipeline {
   agent {
     docker {
+      alwaysPull true
       image 'continuousdeliverydocker/docker-agent'
       args '-v /var/run/docker.sock:/var/run/docker.sock --mount type=tmpfs,destination=/.docker'
     }
