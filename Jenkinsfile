@@ -49,6 +49,7 @@ pipeline {
         githubNotify status: 'PENDING', description: 'Deploying to staging', context: 'jenkins/staging'
         sh 'make deploy/staging'
         sh 'make acceptance/staging'
+        githubNotify status: 'PENDING', description: 'Awaiting approval', context: 'jenkins/staging'
         input message: 'Approval Required'
       }
       post {
