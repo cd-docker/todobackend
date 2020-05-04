@@ -49,6 +49,13 @@ pipeline {
         githubNotify status: 'PENDING', description: 'Deploying to staging', context: 'jenkins/staging'
         sh 'make deploy/staging'
         sh 'make acceptance/staging'
+        githubNotify status: 'PENDING', description: 'Awaiting approval', context: 'jenkins/staging'
+        script {
+          def outputs = readJSON file: 'build/outputs.json'
+          def url = outputs.find { it.name == 'ApplicationLoadBalancer' }.value
+          def message = "Approval Required - http://${url}"
+          input message: message
+        }
       }
       post {
         success {
@@ -56,6 +63,9 @@ pipeline {
         }
         failure {
           githubNotify status: 'FAILURE', description: 'Failed deploying to staging', context: 'jenkins/staging'
+        }
+        aborted {
+          githubNotify status: 'FAILURE', description: 'Approval declined', context: 'jenkins/staging'
         }
       }
     }

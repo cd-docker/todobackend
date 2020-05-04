@@ -103,6 +103,10 @@ deploy/%:
 							  --parameter-overrides Environment=$* ApplicationVersion=$${$($*)} \
 							  --no-fail-on-empty-changeset \
 							  --capabilities CAPABILITY_NAMED_IAM
+	outputs=$$(aws cloudformation describe-stacks \
+		--stack-name todobackend-$* \
+		--query "Stacks[].Outputs[?OutputKey=='ApplicationLoadBalancer'][].{name: OutputKey, value: OutputValue}")
+	echo "$$outputs" > build/outputs.json
 	${INFO} "Deploy stage ($*) complete"
 
 acceptance/%:
