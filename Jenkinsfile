@@ -50,7 +50,12 @@ pipeline {
         sh 'make deploy/staging'
         sh 'make acceptance/staging'
         githubNotify status: 'PENDING', description: 'Awaiting approval', context: 'jenkins/staging'
-        input message: 'Approval Required'
+        script {
+          def outputs = readJSON file: 'build/outputs.json'
+          def url = outputs.find { it.name == 'ApplicationLoadBalancer' }.value
+          def message = "Approval Required - http://${url}"
+          input message: message
+        }
       }
       post {
         success {
