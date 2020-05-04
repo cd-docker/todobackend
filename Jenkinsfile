@@ -59,6 +59,9 @@ pipeline {
         failure {
           githubNotify status: 'FAILURE', description: 'Failed deploying to staging', context: 'jenkins/staging'
         }
+        aborted {
+          githubNotify status: 'FAILURE', description: 'Approval declined', context: 'jenkins/staging'
+        }
       }
     }
 
