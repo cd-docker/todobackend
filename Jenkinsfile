@@ -85,6 +85,7 @@ pipeline {
       }
       steps {
         sh 'make login'
+        sh 'make version'
         sh 'make tag'
         sh 'make deploy/production'
       }
