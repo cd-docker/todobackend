@@ -13,6 +13,8 @@ mysqlclient = "*"
 django-nose = "*"
 pinocchio = "*"
 coverage = "*"
+pytest = "*"
+requests = "*"
 
 [requires]
 python_version = "3.8"
