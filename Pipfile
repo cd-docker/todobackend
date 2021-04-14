@@ -7,8 +7,12 @@ name = "pypi"
 django = "~=3.2.0"
 djangorestframework = "~=3.0"
 django-cors-headers = "~=3.0"
+mysqlclient = "*"
 
 [dev-packages]
+django-nose = "*"
+pinocchio = "*"
+coverage = "*"
 
 [requires]
 python_version = "3.8"
