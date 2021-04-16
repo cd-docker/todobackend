@@ -6,7 +6,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Install operating system dependencies
-RUN apk add --no-cache python3-dev py3-pip mariadb-dev gcc musl-dev rsync
+RUN apk add --no-cache python3-dev py3-pip mariadb-dev gcc musl-dev linux-headers rsync
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install pipenv
 
