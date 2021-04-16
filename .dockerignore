@@ -1,0 +1,10 @@
+.env
+.git
+.gitignore
+.dockerignore
+.vscode
+src/.coverage
+src/*.xml
+src/*.sqlite3
+**/__pycache__
+**/.pytest_cache
