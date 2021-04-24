@@ -1,5 +1,9 @@
 version: '2.4'
 
+volumes:
+  public:
+    driver: local
+
 services:
   # Test environment
   test:
@@ -33,21 +37,34 @@ services:
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: password
   # Release environment
-  release-app:
+  release:
     build:
       context: .
       dockerfile: Dockerfile
       target: release
     image: release
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       DEBUG: 'true'
       DJANGO_SETTINGS_MODULE: todobackend.settings.release
       MYSQL_HOST: db
       MYSQL_USER: todo
       MYSQL_PASSWORD: password
+  release-app:
+    extends:
+      service: release
+    depends_on:
+      release-migrate:
+        condition: service_completed_successfully
+      release-content:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: curl -fs localhost:8000
+      interval: 3s
+      retries: 10
+    volumes:
+      - public:/public
     ports:
       - 8000:8000
     command:
@@ -59,3 +76,24 @@ services:
       - --die-on-term
       - --processes=4
       - --threads=10
+  release-content:
+    extends:
+      service: release
+    volumes:
+      - public:/public
+    command:
+      - python
+      - manage.py
+      - collectstatic
+      - --no-input
+  release-migrate:
+    extends:
+      service: release
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - python
+      - manage.py
+      - migrate
+      - --no-input

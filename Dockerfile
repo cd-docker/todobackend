@@ -76,6 +76,8 @@ RUN addgroup -g 1000 app && \
 COPY --from=test --chown=app:app /app /app
 
 # Public content
+RUN mkdir -p /public && \
+    chown -R app:app /public
 VOLUME /public
 
 # Set virtual environment path, working directory and application user
