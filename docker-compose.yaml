@@ -1,0 +1,30 @@
+version: '2.4'
+
+services:
+  # Test environment
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: test
+  test-integration:
+    extends:
+      service: test
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_SETTINGS_MODULE: todobackend.settings.test
+      TEST_OUTPUT_DIR: /reports
+      MYSQL_HOST: db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+  # Database service
+  db:
+    image: mariadb:10.5
+    healthcheck:
+      test: mysqlshow -u root -ppassword
+      interval: 3s
+      retries: 10
+    environment:
+      MYSQL_ROOT_PASSWORD: password
