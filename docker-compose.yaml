@@ -36,6 +36,21 @@ services:
       MYSQL_USER: todo
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: password
+  # Acceptance tests
+  acceptance:
+    extends:
+      service: test
+    depends_on:
+      release-app:
+        condition: service_healthy
+    environment:
+      TEST_URL: http://release-app:8000/todos
+    working_dir: /app
+    command:
+      - pytest
+      - tests/acceptance
+      - -v
+      - --junitxml=/reports/acceptance.xml
   # Release environment
   release:
     build:
