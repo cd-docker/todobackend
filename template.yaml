@@ -14,6 +14,28 @@ Parameters:
       - production
 
 Resources:
+  # Public Bucket
+  PublicBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub ${AWS::AccountId}-${AWS::Region}-${Environment}-public
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+  PublicBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PublicBucket
+      PolicyDocument:
+        Id: MyPolicy
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub ${PublicBucket.Arn}/*
   # Load Balancer Resources
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -403,3 +425,6 @@ Outputs:
   ApplicationLoadBalancer:
     Description: Load Balander DNS Name
     Value: !GetAtt ApplicationLoadBalancer.DNSName
+  PublicBucket:
+    Description: Public Bucket URL
+    Value: !GetAtt PublicBucket.WebsiteURL
